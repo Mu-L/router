@@ -48,9 +48,9 @@ export function definePathParamParser<
   TParam,
   // path params are parsed by the router as these
   // we use extend to allow infering a more specific type
-  TUrlParam extends string | string[] | null,
+  TUrlParam extends string | string[] | null = string | string[] | null,
   // we can allow pushing with extra values
-  TParamRaw,
+  TParamRaw = TParam,
 >(parser: Required<ParamParser<TParam, TUrlParam, TParamRaw>>) {
   return parser
 }
@@ -74,10 +74,54 @@ export function defineQueryParamParser<
 }
 
 /**
- * Alias for {@link defineQueryParamParser}. Implementing a param parser like this
- * works for path, query, and hash params.
+ * Defines a param parser that works with any kind of param (path, repeatable, optional, query, hash, ...)
+ *
+ * @example
+ *
+ * Here is an example that allows arbitrary numbers (NaN values are filtered
+ * out). It supports repeatable params, so it can be used both as a path param
+ * parser and a query param parser.
+ *
+ * ```ts
+ * export const parser = defineParamParser<number>({
+ *   get: value => {
+ *     if (value == null) return null
+ *     if (Array.isArray(value)) {
+ *       return value
+ *         .filter(v => v != null)
+ *         .map(Number)
+ *         .filter(v => !Number.isNaN(v))
+ *     }
+ *
+ *     return Number.isNaN(Number(value))
+ *       ? miss(`"${value}" is not a valid number`)
+ *       : Number(value)
+ *   },
+ *
+ *   set: value =>
+ *     Array.isArray(value)
+ *       ? value.map(String)
+ *       : value == null
+ *         ? null
+ *         : String(value),
+ * })
+ * ```
  *
  * @see {@link defineQueryParamParser}
  * @see {@link definePathParamParser}
  */
-export const defineParamParser = defineQueryParamParser
+export function defineParamParser<
+  TParam,
+  // we can allow pushing with extra values
+  TParamRaw = TParam,
+>(
+  parser: Required<
+    ParamParser<
+      TParam | TParam[] | null,
+      MatcherQueryParamsValue,
+      TParamRaw | TParamRaw[] | null
+    >
+  >
+) {
+  return parser
+}
